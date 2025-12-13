@@ -32,7 +32,7 @@ func (h *TextMessageHandler) List(c echo.Context) error {
 
 	// 执行分页查询
 	ctx := c.Request().Context()
-	pr := orz.GetPageRequest(c, "timestamp")
+	pr := orz.GetPageRequest(c, "createdAt")
 
 	builder := orz.NewPageBuilder(h.repo).
 		PageRequest(pr).

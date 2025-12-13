@@ -11,17 +11,6 @@ export interface TextMessage {
   updatedAt: number;
 }
 
-// 查询参数
-export interface ListQuery {
-  pageIndex?: number;
-  pageSize?: number;
-  type?: string;
-  status?: string;
-  from?: string;
-  to?: string;
-  content?: string;
-}
-
 // 查询结果
 export interface ListResult {
   total: number;

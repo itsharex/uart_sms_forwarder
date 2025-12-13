@@ -1,62 +1,77 @@
-import {useEffect, useState} from 'react';
 import {RefreshCw, Trash2} from 'lucide-react';
 import {toast} from 'sonner';
 import {clearMessages, deleteMessage, getMessages} from '../api/messages';
-import type {ListQuery, TextMessage} from '../api/types';
 import {Input} from '@/components/ui/input';
 import {Button} from '@/components/ui/button';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from '@/components/ui/select';
+import {useSearchParams} from "react-router-dom";
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 export default function Messages() {
-    const [messages, setMessages] = useState<TextMessage[]>([]);
-    const [total, setTotal] = useState(0);
-    const [loading, setLoading] = useState(true);
-    const [query, setQuery] = useState<ListQuery>({
-        pageIndex: 1,
-        pageSize: 100,
+    const [searchParams, setSearchParams] = useSearchParams({
+        pageIndex: '1',
+        pageSize: '100',
+        sortField: 'createdAt',
+        sortOrder: 'desc',
+    });
+    const queryClient = useQueryClient();
+
+    // 使用 react-query 获取短信列表
+    const {data, isLoading, refetch} = useQuery({
+        queryKey: ['messages', searchParams.toString()],
+        queryFn: () => getMessages(searchParams),
     });
 
-    useEffect(() => {
-        loadMessages();
-    }, [query]);
+    const messages = data?.items || [];
+    const total = data?.total || 0;
 
-    const loadMessages = async () => {
-        setLoading(true);
-        try {
-            const data = await getMessages(query);
-            setMessages(data.items || []);
-            setTotal(data.total);
-        } catch (error) {
-            console.error('获取短信列表失败:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+    // 删除单条短信
+    const deleteMutation = useMutation({
+        mutationFn: deleteMessage,
+        onSuccess: () => {
+            toast.success('删除成功');
+            queryClient.invalidateQueries({queryKey: ['messages']});
+        },
+        onError: (error) => {
+            console.error('删除失败:', error);
+            toast.error('删除失败');
+        },
+    });
+
+    // 清空所有短信
+    const clearMutation = useMutation({
+        mutationFn: clearMessages,
+        onSuccess: () => {
+            toast.success('清空成功');
+            queryClient.invalidateQueries({queryKey: ['messages']});
+        },
+        onError: (error) => {
+            console.error('清空失败:', error);
+            toast.error('清空失败');
+        },
+    });
 
     const handleDelete = async (id: string) => {
         if (!confirm('确定要删除这条短信吗？')) return;
-
-        try {
-            await deleteMessage(id);
-            toast.success('删除成功');
-            loadMessages();
-        } catch (error) {
-            console.error('删除失败:', error);
-            toast.error('删除失败');
-        }
+        deleteMutation.mutate(id);
     };
 
     const handleClear = async () => {
         if (!confirm('确定要清空所有短信吗？此操作不可恢复！')) return;
+        clearMutation.mutate();
+    };
 
-        try {
-            await clearMessages();
-            toast.success('清空成功');
-            loadMessages();
-        } catch (error) {
-            console.error('清空失败:', error);
-            toast.error('清空失败');
-        }
+    // 更新搜索参数的辅助函数
+    const updateSearchParams = (updates: Record<string, string | undefined>) => {
+        const newParams = new URLSearchParams(searchParams);
+        Object.entries(updates).forEach(([key, value]) => {
+            if (value === undefined || value === '') {
+                newParams.delete(key);
+            } else {
+                newParams.set(key, value);
+            }
+        });
+        setSearchParams(newParams);
     };
 
     const formatTime = (timestamp: number) => {
@@ -86,7 +101,10 @@ export default function Messages() {
         }
     };
 
-    const totalPages = Math.ceil(total / (query.pageSize || 100));
+    let pageIndex = parseInt(searchParams.get('pageIndex') || '1');
+    let pageSize = parseInt(searchParams.get('pageSize') || '100');
+
+    const totalPages = Math.ceil(total / pageSize);
 
     return (
         <div>
@@ -94,7 +112,7 @@ export default function Messages() {
                 <h1 className="text-2xl font-bold text-gray-900">短信记录</h1>
                 <div className="flex gap-2">
                     <Button
-                        onClick={loadMessages}
+                        onClick={() => refetch()}
                         variant="outline"
                     >
                         <RefreshCw className="w-4 h-4 mr-2"/>
@@ -118,11 +136,10 @@ export default function Messages() {
                             类型
                         </label>
                         <Select
-                            value={query.type || 'all'}
-                            onValueChange={(value) => setQuery({
-                                ...query,
+                            value={searchParams.get('type') || 'all'}
+                            onValueChange={(value) => updateSearchParams({
                                 type: value === 'all' ? undefined : value,
-                                pageIndex: 1
+                                pageIndex: '1'
                             })}
                         >
                             <SelectTrigger>
@@ -141,8 +158,8 @@ export default function Messages() {
                         </label>
                         <Input
                             type="text"
-                            value={query.from || ''}
-                            onChange={(e) => setQuery({...query, from: e.target.value, pageIndex: 1})}
+                            value={searchParams.get('from') || ''}
+                            onChange={(e) => updateSearchParams({from: e.target.value, pageIndex: '1'})}
                             placeholder="输入手机号"
                         />
                     </div>
@@ -152,8 +169,8 @@ export default function Messages() {
                         </label>
                         <Input
                             type="text"
-                            value={query.to || ''}
-                            onChange={(e) => setQuery({...query, to: e.target.value, pageIndex: 1})}
+                            value={searchParams.get('to') || ''}
+                            onChange={(e) => updateSearchParams({to: e.target.value, pageIndex: '1'})}
                             placeholder="输入手机号"
                         />
                     </div>
@@ -163,8 +180,8 @@ export default function Messages() {
                         </label>
                         <Input
                             type="text"
-                            value={query.content || ''}
-                            onChange={(e) => setQuery({...query, content: e.target.value, pageIndex: 1})}
+                            value={searchParams.get('content') || ''}
+                            onChange={(e) => updateSearchParams({content: e.target.value, pageIndex: '1'})}
                             placeholder="输入短信内容关键词"
                         />
                     </div>
@@ -173,7 +190,7 @@ export default function Messages() {
 
             {/* 短信列表 */}
             <div className="bg-white rounded-lg shadow-md overflow-hidden">
-                {loading ? (
+                {isLoading ? (
                     <div className="flex justify-center items-center h-64">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
                     </div>
@@ -258,15 +275,15 @@ export default function Messages() {
                             className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
                             <div className="flex-1 flex justify-between sm:hidden">
                                 <Button
-                                    onClick={() => setQuery({...query, pageIndex: (query.pageIndex || 1) - 1})}
-                                    disabled={(query.pageIndex || 1) <= 1}
+                                    onClick={() => updateSearchParams({pageIndex: String(pageIndex - 1)})}
+                                    disabled={pageIndex <= 1}
                                     variant="outline"
                                 >
                                     上一页
                                 </Button>
                                 <Button
-                                    onClick={() => setQuery({...query, pageIndex: (query.pageIndex || 1) + 1})}
-                                    disabled={(query.pageIndex || 1) >= totalPages}
+                                    onClick={() => updateSearchParams({pageIndex: String(pageIndex + 1)})}
+                                    disabled={pageIndex >= totalPages}
                                     variant="outline"
                                 >
                                     下一页
@@ -276,9 +293,9 @@ export default function Messages() {
                                 <div>
                                     <p className="text-sm text-gray-700">
                                         显示 <span
-                                        className="font-medium">{((query.pageIndex || 1) - 1) * (query.pageSize || 100) + 1}</span> 到{' '}
+                                        className="font-medium">{(pageIndex - 1) * pageSize + 1}</span> 到{' '}
                                         <span className="font-medium">
-                      {Math.min((query.pageIndex || 1) * (query.pageSize || 100), total)}
+                      {Math.min(pageIndex * pageSize, total)}
                     </span>{' '}
                                         条，共 <span className="font-medium">{total}</span> 条
                                     </p>
@@ -286,8 +303,8 @@ export default function Messages() {
                                 <div>
                                     <nav className="relative z-0 inline-flex items-center gap-2">
                                         <Button
-                                            onClick={() => setQuery({...query, pageIndex: (query.pageIndex || 1) - 1})}
-                                            disabled={(query.pageIndex || 1) <= 1}
+                                            onClick={() => updateSearchParams({pageIndex: String(pageIndex - 1)})}
+                                            disabled={pageIndex <= 1}
                                             variant="outline"
                                             size="sm"
                                         >
@@ -295,11 +312,11 @@ export default function Messages() {
                                         </Button>
                                         <span
                                             className="relative inline-flex items-center px-4 py-1 border border-input bg-background text-sm font-medium text-foreground rounded-md">
-                      {query.pageIndex || 1} / {totalPages}
+                      {pageIndex} / {totalPages}
                     </span>
                                         <Button
-                                            onClick={() => setQuery({...query, pageIndex: (query.pageIndex || 1) + 1})}
-                                            disabled={(query.pageIndex || 1) >= totalPages}
+                                            onClick={() => updateSearchParams({pageIndex: String(pageIndex + 1)})}
+                                            disabled={pageIndex >= totalPages}
                                             variant="outline"
                                             size="sm"
                                         >
