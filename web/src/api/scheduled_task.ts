@@ -1,6 +1,8 @@
 // 定时任务配置
 import apiClient from "@/api/client.ts";
 
+export type LastRunStatus = 'unknown' | 'success' | 'failed';
+
 export interface ScheduledTask {
     id: string;
     name: string;
@@ -10,6 +12,8 @@ export interface ScheduledTask {
     content: string;
     createdAt?: number;
     lastRunAt?: number;
+    lastMsgId?: string;
+    lastRunStatus?: LastRunStatus;
 }
 
 // 定时任务 API (RESTful)

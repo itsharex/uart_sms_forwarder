@@ -169,6 +169,11 @@ func (s *SchedulerService) shouldExecuteTask(task models.ScheduledTask, now time
 	lastRun := time.UnixMilli(task.LastRunAt)
 	daysSinceLastRun := int(now.Sub(lastRun).Hours() / 24)
 
+	// 如果上次执行失败，1天后就可以重试
+	if task.LastRunStatus == models.LastRunStatusFailed {
+		return daysSinceLastRun >= 1
+	}
+
 	// 如果满足间隔天数条件，则执行
 	return daysSinceLastRun >= task.IntervalDays
 }

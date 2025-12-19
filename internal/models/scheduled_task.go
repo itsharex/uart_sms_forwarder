@@ -21,7 +21,7 @@ type ScheduledTask struct {
 
 	LastMsgId     string        `json:"lastMsgId"`     // 上次发送的短信ID
 	LastRunAt     int64         `json:"lastRunAt"`     // 上次执行时间（时间戳毫秒）
-	LastRunStatus LastRunStatus `json:"lastRunStatus"` // 上次执行状
+	LastRunStatus LastRunStatus `json:"lastRunStatus"` // 上次执行状态
 }
 
 func (ScheduledTask) TableName() string {

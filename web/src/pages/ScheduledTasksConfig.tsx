@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {Calendar, Clock, Edit, MessageSquare, Phone, Plus, Play, Trash2} from 'lucide-react';
+import {Calendar, Clock, Edit, MessageSquare, Phone, Plus, Play, Trash2, CheckCircle2, XCircle} from 'lucide-react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {toast} from 'sonner';
 import {Button} from '@/components/ui/button';
@@ -18,6 +18,7 @@ import {
     deleteScheduledTask,
     getScheduledTasks,
     type ScheduledTask,
+    type LastRunStatus,
     triggerScheduledTask,
     updateScheduledTask,
 } from '../api/scheduled_task';
@@ -41,6 +42,34 @@ export default function ScheduledTasksConfig() {
         phoneNumber: '',
         content: '',
     });
+
+    // 获取状态显示信息
+    const getStatusDisplay = (status?: LastRunStatus) => {
+        switch (status) {
+            case 'success':
+                return {
+                    icon: CheckCircle2,
+                    text: '成功',
+                    colorClass: 'text-green-600',
+                    bgClass: 'bg-green-50',
+                };
+            case 'failed':
+                return {
+                    icon: XCircle,
+                    text: '失败',
+                    colorClass: 'text-red-600',
+                    bgClass: 'bg-red-50',
+                };
+            case 'unknown':
+            default:
+                return {
+                    icon: Clock,
+                    text: '发送中',
+                    colorClass: 'text-blue-600',
+                    bgClass: 'bg-blue-50',
+                };
+        }
+    };
 
     // 获取定时任务列表
     const {data: tasks = [], isLoading} = useQuery({
@@ -287,7 +316,7 @@ export default function ScheduledTasksConfig() {
                                 </div>
 
                                 {task.lastRunAt > 0 && (
-                                    <div className="mb-3 pb-2.5 border-b border-gray-100">
+                                    <div className="mb-3 pb-2.5 border-b border-gray-100 space-y-2">
                                         <div className="flex items-center text-xs">
                                             <span className="text-gray-400">上次执行：</span>
                                             <span className="text-gray-600 ml-1.5 font-medium">
@@ -299,6 +328,25 @@ export default function ScheduledTasksConfig() {
                         })}
                       </span>
                                         </div>
+                                        {task.lastRunStatus && (
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="text-gray-400 text-xs">执行状态：</span>
+                                                {(() => {
+                                                    const statusInfo = getStatusDisplay(task.lastRunStatus);
+                                                    const StatusIcon = statusInfo.icon;
+                                                    return (
+                                                        <div
+                                                            className={`flex items-center gap-1 px-2 py-0.5 rounded-full ${statusInfo.bgClass}`}>
+                                                            <StatusIcon className={`w-3 h-3 ${statusInfo.colorClass}`}/>
+                                                            <span
+                                                                className={`text-xs font-medium ${statusInfo.colorClass}`}>
+                                                                {statusInfo.text}
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })()}
+                                            </div>
+                                        )}
                                     </div>
                                 )}
 
