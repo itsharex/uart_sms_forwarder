@@ -1,7 +1,7 @@
 -- =================================================================================
--- PROJECT: UART SMS Forwarder (Fixed Scope & Init)
--- DEVICE:  Air780E (EC618)
--- VERSION: 1.0.0
+-- PROJECT: UART SMS Forwarder
+-- DEVICE:  Air780EHV
+-- VERSION: 1.0.1
 -- 协议说明：
 --   上行（MCU -> 模块）：CMD_START:{json}:CMD_END
 --   下行（模块 -> MCU）：SMS_START:{json}:SMS_END
