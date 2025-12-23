@@ -321,10 +321,7 @@ func (n *Notifier) sendWeComByConfig(ctx context.Context, config map[string]inte
 	// 构造 Webhook URL
 	webhook := fmt.Sprintf("https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=%s", secretKey)
 
-	// 检查是否有加签密钥
-	signSecret, _ := config["signSecret"].(string)
-
-	return n.sendFeishu(ctx, webhook, signSecret, message)
+	return n.sendWeCom(ctx, webhook, message)
 }
 
 // sendFeishuByConfig 根据配置发送飞书通知
