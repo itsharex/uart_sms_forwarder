@@ -415,7 +415,7 @@ func (s *SerialService) GetStatus() (*StatusData, error) {
 		status.Connected = connected
 
 		// 更新飞行模式状态
-		status.Flymode = s.flyMode.Load()
+		status.Flymode = s.FlyMode()
 		return status, nil
 	}
 
@@ -425,6 +425,11 @@ func (s *SerialService) GetStatus() (*StatusData, error) {
 		Connected: connected,
 	}
 	return status, nil
+}
+
+func (s *SerialService) FlyMode() bool {
+	// 返回当前飞行模式状态
+	return s.flyMode.Load()
 }
 
 // SetFlymode 设置飞行模式
@@ -448,6 +453,8 @@ func (s *SerialService) RebootMcu() error {
 	if err := s.sendJSONCommand(cmd); err != nil {
 		return err
 	}
+	// 重启后，飞行模式默认关闭
+	s.flyMode.Store(false)
 	return nil
 }
 

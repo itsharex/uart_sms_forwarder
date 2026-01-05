@@ -188,6 +188,21 @@ func (s *SchedulerService) executeTask(task models.ScheduledTask) error {
 
 	ctx := context.Background()
 
+	flyMode := s.serialService.FlyMode()
+	// 如果是飞行模式，取消飞行模式，再等待 30 秒后发送短信
+	if flyMode {
+		s.logger.Info("当前为飞行模式，取消飞行模式后等待 30 秒")
+		// 取消飞行模式
+		if err := s.serialService.SetFlymode(false); err != nil {
+			s.logger.Error("取消飞行模式失败", zap.Error(err))
+			return err
+		}
+		s.logger.Info("取消飞行模式成功")
+		// 等待 30 秒
+		time.Sleep(30 * time.Second)
+		s.logger.Info("等待 30 秒后发送短信")
+	}
+
 	// 发送短信
 	msgId, err := s.serialService.SendSMS(task.PhoneNumber, task.Content)
 	if err != nil {
